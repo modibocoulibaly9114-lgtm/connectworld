@@ -1,75 +1,43 @@
-const CACHE_NAME = 'connectworld-v1';
-const ASSETS = [
-  '/connectworld/',
-  '/connectworld/index.html',
-  '/connectworld/manifest.json'
-];
+const CACHE = 'connectworld-v2';
 
-// Installation — mise en cache des ressources
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(ASSETS).catch(() => {});
-    })
+self.addEventListener('install', e => {
+  e.waitUntil(
+    caches.open(CACHE).then(c => c.addAll(['./', './index.html', './manifest.json']))
+      .catch(() => {})
   );
   self.skipWaiting();
 });
 
-// Activation — nettoyage des anciens caches
-self.addEventListener('activate', event => {
-  event.waitUntil(
+self.addEventListener('activate', e => {
+  e.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(
-        keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
-      )
+      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
     )
   );
   self.clients.claim();
 });
 
-// Fetch — stratégie Network First avec fallback cache
-self.addEventListener('fetch', event => {
-  if (event.request.method !== 'GET') return;
-  event.respondWith(
-    fetch(event.request)
-      .then(response => {
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
-        return response;
+self.addEventListener('fetch', e => {
+  if (e.request.method !== 'GET') return;
+  e.respondWith(
+    fetch(e.request)
+      .then(r => {
+        const clone = r.clone();
+        caches.open(CACHE).then(c => c.put(e.request, clone));
+        return r;
       })
-      .catch(() => caches.match(event.request))
+      .catch(() => caches.match(e.request))
   );
 });
 
-// Push Notifications
-self.addEventListener('push', event => {
-  const data = event.data ? event.data.json() : {};
-  event.waitUntil(
-    self.registration.showNotification(data.title || 'ConnectWorld AI', {
-      body: data.body || 'Nouvelle notification',
-      icon: 'https://via.placeholder.com/192x192/4f6ef7/ffffff?text=CW',
-      badge: 'https://via.placeholder.com/72x72/4f6ef7/ffffff?text=CW',
-      vibrate: [200, 100, 200],
-      data: { url: data.url || '/connectworld/' }
+self.addEventListener('push', e => {
+  const d = e.data ? e.data.json() : {};
+  e.waitUntil(
+    self.registration.showNotification(d.title || 'ConnectWorld AI', {
+      body: d.body || 'Nouvelle notification',
+      icon: 'https://placehold.co/192x192/4f6ef7/ffffff?text=CW',
+      badge: 'https://placehold.co/72x72/4f6ef7/ffffff?text=CW',
+      vibrate: [200, 100, 200]
     })
   );
 });
-
-// Clic sur notification
-self.addEventListener('notificationclick', event => {
-  event.notification.close();
-  event.waitUntil(
-    clients.openWindow(event.notification.data.url || '/connectworld/')
-  );
-});
-
-// Background Sync
-self.addEventListener('sync', event => {
-  if (event.tag === 'sync-content') {
-    event.waitUntil(syncContent());
-  }
-});
-
-async function syncContent() {
-  console.log('ConnectWorld AI — synchronisation en arrière-plan');
-}
