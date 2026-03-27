@@ -1,0 +1,46 @@
+{
+  "name": "ConnectWorld AI",
+  "short_name": "ConnectWorld",
+  "description": "Application sociale multilingue avec IA — vidéos, stories, communautés et emploi pour la diaspora mondiale",
+  "start_url": "/connectworld/",
+  "scope": "/connectworld/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#08090f",
+  "theme_color": "#4f6ef7",
+  "lang": "fr",
+  "categories": ["social", "entertainment", "lifestyle"],
+  "icons": [
+    {
+      "src": "https://via.placeholder.com/192x192/4f6ef7/ffffff?text=CW",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://via.placeholder.com/512x512/4f6ef7/ffffff?text=CW",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Flash",
+      "short_name": "Flash",
+      "description": "Voir les vidéos courtes",
+      "url": "/connectworld/",
+      "icons": [{ "src": "https://via.placeholder.com/96x96/4f6ef7/ffffff?text=⚡", "sizes": "96x96" }]
+    },
+    {
+      "name": "Créer",
+      "short_name": "Créer",
+      "description": "Créer du contenu avec l'IA",
+      "url": "/connectworld/",
+      "icons": [{ "src": "https://via.placeholder.com/96x96/7c3aed/ffffff?text=+", "sizes": "96x96" }]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
+}
