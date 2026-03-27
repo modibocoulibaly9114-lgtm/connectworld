@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>ConnectWorld AI — Flash</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:#111;display:flex;justify-content:center;align-items:center;font-family:'DM Sans',sans-serif}
+
+.device{
+  width:375px;height:812px;
+  background:#000;
+  border-radius:44px;
+  overflow:hidden;
+  position:relative;
+  border:2px solid rgba(255,255,255,0.15);
+  box-shadow:0 40px 100px rgba(0,0,0,0.7),inset 0 0 0 1px rgba(255,255,255,0.05);
+  display:flex;flex-direction:column;
+}
+
+/* STATUS BAR */
+.status{
+  height:44px;display:flex;align-items:center;
+  justify-content:space-between;
+  padding:12px 24px 0;
+  position:absolute;top:0;left:0;right:0;z-index:100;
+  color:#fff;
+}
+.status-time{font-size:15px;font-weight:600;font-family:'DM Sans',sans-serif}
+.status-icons{display:flex;align-items:center;gap:6px}
+
+/* FEED */
+.feed{flex:1;position:relative;overflow:hidden;cursor:grab}
+.feed:active{cursor:grabbing}
+
+/* VIDEO CARD */
+.vcard{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;
+  transition:transform 0.42s cubic-bezier(0.25,0.46,0.45,0.94),opacity 0.42s ease;
+  will-change:transform;
+  overflow:hidden;
+}
+.vcard.cur{transform:translateY(0);opacity:1;z-index:10}
+.vcard.above{transform:translateY(-100%);opacity:0;z-index:5}
+.vcard.below{transform:translateY(100%);opacity:0;z-index:5}
+.vcard.hidden{display:none}
+
+/* SCENE — full bleed SVG image */
+.scene{
+  position:absolute;inset:0;
+  overflow:hidden;
+}
+.scene svg{width:100%;height:100%;display:block}
+.scene-overlay{
+  position:absolute;inset:0;
+  background:linear-gradient(
+    to bottom,
+    rgba(0,0,0,0.35) 0%,
+    transparent 25%,
+    transparent 50%,
+    rgba(0,0,0,0.6) 75%,
+    rgba(0,0,0,0.88) 100%
+  );
+}
+
+/* TOP NAV */
+.top-nav{
+  position:absolute;top:44px;left:0;right:0;
+  display:flex;align-items:center;justify-content:center;
+  gap:28px;z-index:30;padding-top:6px;
+}
+.tnav-tab{
+  font-size:15px;font-weight:500;color:rgba(255,255,255,0.5);
+  cursor:pointer;padding-bottom:3px;
+  border-bottom:2px solid transparent;
+  transition:all 0.2s;letter-spacing:0.01em;
+}
+.tnav-tab.on{color:#fff;border-bottom-color:#fff;font-weight:600}
+
+/* TRANSLATE BUTTON */
+.xlate-btn{
+  position:absolute;top:102px;right:14px;
+  display:flex;align-items:center;gap:5px;
+  background:rgba(30,60,220,0.78);
+  backdrop-filter:blur(8px);
+  border:1px solid rgba(100,140,255,0.5);
+  border-radius:99px;padding:7px 13px;
+  color:#fff;font-size:12px;font-weight:600;
+  cursor:pointer;z-index:30;
+  font-family:'DM Sans',sans-serif;
+  transition:background 0.2s;
+  letter-spacing:0.02em;
+}
+.xlate-btn:hover{background:rgba(50,90,255,0.9)}
+.live-dot{width:7px;height:7px;border-radius:50%;background:#10e888;animation:blink 1.4s ease-in-out infinite;flex-shrink:0}
+@keyframes blink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.3;transform:scale(0.7)}}
+
+/* LANG PANEL */
+.lang-panel{
+  position:absolute;top:138px;left:10px;right:10px;
+  background:rgba(8,10,24,0.97);
+  border:1px solid rgba(100,140,255,0.3);
+  border-radius:18px;padding:14px 12px;
+  z-index:50;
+  display:none;
+  max-height:400px;
+  flex-direction:column;gap:8px;
+}
+.lang-panel.open{display:flex;animation:popDown 0.2s ease}
+@keyframes popDown{from{opacity:0;transform:scale(0.95) translateY(-8px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.lp-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px}
+.lp-title{font-size:11px;font-weight:600;color:rgba(255,255,255,0.4);letter-spacing:0.08em;text-transform:uppercase}
+.lp-close{width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,0.1);border:none;color:rgba(255,255,255,0.6);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.lp-search{
+  width:100%;background:rgba(255,255,255,0.06);
+  border:1px solid rgba(255,255,255,0.12);border-radius:10px;
+  padding:8px 12px;color:#fff;font-size:13px;
+  font-family:'DM Sans',sans-serif;outline:none;
+}
+.lp-search::placeholder{color:rgba(255,255,255,0.3)}
+.lp-grid{
+  display:flex;flex-direction:column;gap:1px;
+  overflow-y:auto;flex:1;
+}
+.lp-grid::-webkit-scrollbar{width:3px}
+.lp-grid::-webkit-scrollbar-thumb{background:rgba(100,140,255,0.4);border-radius:99px}
+.lang-row{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 10px;border-radius:10px;
+  cursor:pointer;transition:background 0.15s;
+  font-size:13px;color:rgba(255,255,255,0.85);
+}
+.lang-row:hover{background:rgba(255,255,255,0.07)}
+.lang-row.sel{background:rgba(79,110,247,0.22);color:#fff}
+.lang-flag{font-size:18px;width:24px;text-align:center;flex-shrink:0}
+.lang-name{flex:1;font-weight:400}
+.lang-code{font-size:10px;color:rgba(255,255,255,0.3);font-weight:500}
+.lang-check{font-size:13px;color:#4f6ef7}
+
+/* AI TRANSLATING */
+.ai-bar{
+  position:absolute;top:138px;left:10px;right:10px;
+  background:rgba(8,10,28,0.94);
+  border:1px solid rgba(79,110,247,0.4);
+  border-radius:12px;padding:10px 14px;
+  display:none;align-items:center;gap:10px;z-index:48;
+}
+.ai-bar.show{display:flex;animation:popDown 0.15s ease}
+.ai-spin{
+  width:18px;height:18px;border-radius:50%;
+  border:2px solid rgba(79,110,247,0.25);
+  border-top-color:#4f6ef7;
+  animation:spin 0.7s linear infinite;flex-shrink:0;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ai-bar-text{font-size:12px;color:rgba(255,255,255,0.8)}
+.ai-bar-lang{color:#4f6ef7;font-weight:600}
+
+/* BOTTOM INFO */
+.bot-info{
+  position:absolute;bottom:0;left:0;
+  right:66px;padding:0 14px 20px;z-index:30;
+}
+.user-row{display:flex;align-items:center;gap:9px;margin-bottom:10px}
+.u-avatar{
+  width:40px;height:40px;border-radius:50%;
+  border:2.5px solid #fff;
+  overflow:hidden;display:flex;align-items:center;justify-content:center;
+  font-size:22px;background:rgba(255,255,255,0.12);
+  flex-shrink:0;cursor:pointer;position:relative;
+}
+.u-name{font-size:14px;font-weight:600;color:#fff;flex:1;text-shadow:0 1px 4px rgba(0,0,0,0.5)}
+.follow-btn{
+  padding:6px 14px;border-radius:99px;
+  border:2px solid #fff;
+  background:transparent;color:#fff;
+  font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;
+  cursor:pointer;transition:all 0.2s;white-space:nowrap;
+  letter-spacing:0.02em;
+}
+.follow-btn.on{background:#fff;color:#000;border-color:#fff}
+.v-desc{
+  font-size:13.5px;color:rgba(255,255,255,0.95);
+  line-height:1.45;margin-bottom:7px;
+  text-shadow:0 1px 6px rgba(0,0,0,0.6);
+}
+.v-tags{font-size:12.5px;color:rgba(200,215,255,0.85);margin-bottom:8px;font-weight:500}
+.v-music{
+  display:flex;align-items:center;gap:7px;
+  font-size:11.5px;color:rgba(255,255,255,0.7);
+}
+.music-disc{
+  width:22px;height:22px;border-radius:50%;
+  background:rgba(255,255,255,0.15);
+  border:1px solid rgba(255,255,255,0.2);
+  display:flex;align-items:center;justify-content:center;font-size:11px;
+  animation:spin 4s linear infinite;flex-shrink:0;
+}
+
+/* SIDE ACTIONS */
+.side-actions{
+  position:absolute;right:10px;bottom:16px;
+  display:flex;flex-direction:column;gap:20px;align-items:center;
+  z-index:30;
+}
+.act{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  cursor:pointer;user-select:none;
+}
+.act-icon{
+  width:46px;height:46px;border-radius:50%;
+  background:rgba(255,255,255,0.14);
+  backdrop-filter:blur(6px);
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;
+  transition:transform 0.15s,background 0.15s;
+  border:1px solid rgba(255,255,255,0.08);
+}
+.act:active .act-icon{transform:scale(0.85)}
+.act-label{font-size:11px;color:rgba(255,255,255,0.85);font-weight:500;text-shadow:0 1px 4px rgba(0,0,0,0.5)}
+.act.liked .act-icon{background:rgba(247,37,133,0.32);border-color:rgba(247,37,133,0.4)}
+
+/* PROGRESS BAR */
+.prog-wrap{position:absolute;top:0;left:0;right:0;height:2.5px;z-index:40;background:rgba(255,255,255,0.1)}
+.prog-fill{height:100%;background:rgba(255,255,255,0.7);border-radius:0 99px 99px 0;transition:width 0.08s linear}
+
+/* BOTTOM NAV */
+.bnav{
+  height:84px;background:rgba(0,0,0,0.92);
+  border-top:1px solid rgba(255,255,255,0.08);
+  display:flex;align-items:center;flex-shrink:0;
+  padding-bottom:20px;
+  position:relative;z-index:60;
+}
+.bn{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer}
+.bn-icon{font-size:22px;line-height:1}
+.bn-label{font-size:10px;color:rgba(255,255,255,0.35);font-weight:500}
+.bn.on .bn-label{color:#fff}
+.bn.on .bn-icon{filter:drop-shadow(0 0 6px rgba(255,255,255,0.5))}
+.bn-create{
+  flex:1;display:flex;justify-content:center;align-items:center;
+}
+.bn-create-btn{
+  width:46px;height:46px;border-radius:14px;
+  background:linear-gradient(135deg,#4f6ef7,#7c3aed);
+  border:none;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:22px;color:#fff;
+  box-shadow:0 4px 16px rgba(79,110,247,0.5);
+}
+
+/* SHEETS */
+.sheet-bg{
+  position:absolute;inset:0;background:rgba(0,0,0,0.55);z-index:70;
+  display:none;align-items:flex-end;
+}
+.sheet-bg.open{display:flex;animation:fadeBg 0.2s ease}
+@keyframes fadeBg{from{opacity:0}to{opacity:1}}
+.sheet{
+  width:100%;background:#0d0f1e;
+  border-radius:22px 22px 0 0;
+  padding:14px 16px 28px;
+  animation:slideUp 0.28s cubic-bezier(0.25,0.46,0.45,0.94);
+  max-height:75%;display:flex;flex-direction:column;
+}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.sheet-handle{width:36px;height:4px;border-radius:99px;background:rgba(255,255,255,0.18);margin:0 auto 14px}
+.sheet-title{font-size:15px;font-weight:600;color:#fff;margin-bottom:14px}
+
+/* COMMENTS */
+.comments-list{overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:12px;margin-bottom:14px}
+.comments-list::-webkit-scrollbar{width:0}
+.cmt{display:flex;gap:10px;align-items:flex-start}
+.cmt-av{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.cmt-body{flex:1}
+.cmt-user{font-size:12px;color:rgba(255,255,255,0.45);margin-bottom:2px}
+.cmt-text{font-size:13px;color:rgba(255,255,255,0.9);line-height:1.4}
+.cmt-actions{display:flex;gap:10px;margin-top:4px}
+.cmt-like{font-size:11px;color:rgba(255,255,255,0.35);cursor:pointer}
+.cmt-input-row{display:flex;gap:8px;align-items:center;flex-shrink:0}
+.cmt-input{flex:1;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:99px;padding:9px 14px;color:#fff;font-size:13px;font-family:'DM Sans',sans-serif;outline:none}
+.cmt-input::placeholder{color:rgba(255,255,255,0.3)}
+.cmt-send{width:36px;height:36px;border-radius:50%;background:#4f6ef7;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+
+/* SHARE */
+.share-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.share-item{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer}
+.share-icon{width:52px;height:52px;border-radius:16px;background:rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:center;font-size:24px;border:1px solid rgba(255,255,255,0.08)}
+.share-label{font-size:11px;color:rgba(255,255,255,0.55)}
+.share-url-row{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:10px 12px}
+.share-url{flex:1;font-size:11px;color:rgba(255,255,255,0.35);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.copy-btn{background:#4f6ef7;color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap}
+
+/* TOAST */
+.toast{
+  position:absolute;top:50px;left:50%;
+  transform:translateX(-50%) translateY(-20px);
+  background:rgba(15,18,36,0.96);
+  border:1px solid rgba(255,255,255,0.15);
+  border-radius:10px;padding:9px 16px;
+  font-size:13px;font-weight:500;color:#fff;
+  white-space:nowrap;z-index:200;
+  opacity:0;transition:all 0.3s ease;pointer-events:none;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<div class="device">
+
+  <!-- STATUS BAR -->
+  <div class="status">
+    <div class="status-time">9:41</div>
+    <div class="status-icons">
+      <svg width="16" height="11" viewBox="0 0 16 11" fill="white">
+        <rect x="0" y="4" width="2.5" height="7" rx="1" opacity="0.35"/>
+        <rect x="3.5" y="2.5" width="2.5" height="8.5" rx="1" opacity="0.55"/>
+        <rect x="7" y="1" width="2.5" height="10" rx="1" opacity="0.75"/>
+        <rect x="10.5" y="0" width="2.5" height="11" rx="1"/>
+      </svg>
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="none">
+        <path d="M8 3C10.2 3 12.2 3.9 13.7 5.4L15.2 3.9C13.3 2 10.8 1 8 1C5.2 1 2.7 2 0.8 3.9L2.3 5.4C3.8 3.9 5.8 3 8 3Z" fill="white"/>
+        <path d="M8 6C9.4 6 10.7 6.6 11.7 7.5L13.2 6C11.8 4.7 10 4 8 4C6 4 4.2 4.7 2.8 6L4.3 7.5C5.3 6.6 6.6 6 8 6Z" fill="white"/>
+        <circle cx="8" cy="10" r="1.8" fill="white"/>
+      </svg>
+      <svg width="26" height="12" viewBox="0 0 26 12" fill="white">
+        <rect x="0.5" y="0.5" width="20" height="11" rx="3" fill="none" stroke="white" stroke-opacity="0.4"/>
+        <rect x="2" y="2" width="14" height="8" rx="1.5"/>
+        <path d="M22 4v4c1.1-.4 1.8-1.1 1.8-2S23.1 4.4 22 4z"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- FEED -->
+  <div class="feed" id="feed">
+    <div class="prog-wrap"><div class="prog-fill" id="pf"></div></div>
+    <div id="cards"></div>
+
+    <!-- TRANSLATE BUTTON (global overlay) -->
+    <button class="xlate-btn" id="xlateBtn" onclick="toggleLangPanel()">
+      <div class="live-dot"></div>
+      <span id="xlateLabel">🌐 IT → FR</span>
+    </button>
+
+    <!-- LANG PANEL -->
+    <div class="lang-panel" id="langPanel">
+      <div class="lp-head">
+        <div class="lp-title">Choisir la langue</div>
+        <button class="lp-close" onclick="closeLangPanel()">✕</button>
+      </div>
+      <input class="lp-search" id="lpSearch" placeholder="Rechercher..." oninput="filterLangs()">
+      <div class="lp-grid" id="lpGrid"></div>
+    </div>
+
+    <!-- AI BAR -->
+    <div class="ai-bar" id="aiBar">
+      <div class="ai-spin"></div>
+      <div class="ai-bar-text">IA traduit vers <span class="ai-bar-lang" id="aiLangSpan">FR</span>…</div>
+    </div>
+
+    <!-- COMMENTS SHEET -->
+    <div class="sheet-bg" id="cmtBg" onclick="closeSheet('cmt')">
+      <div class="sheet" onclick="event.stopPropagation()">
+        <div class="sheet-handle"></div>
+        <div class="sheet-title" id="cmtTitle">Commentaires</div>
+        <div class="comments-list" id="cmtList"></div>
+        <div class="cmt-input-row">
+          <div class="cmt-av">😊</div>
+          <input class="cmt-input" id="cmtInput" placeholder="Écrire un commentaire…">
+          <button class="cmt-send" onclick="sendCmt()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="white"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SHARE SHEET -->
+    <div class="sheet-bg" id="shrBg" onclick="closeSheet('shr')">
+      <div class="sheet" onclick="event.stopPropagation()">
+        <div class="sheet-handle"></div>
+        <div class="sheet-title">Partager</div>
+        <div class="share-grid">
+          <div class="share-item" onclick="toast('📋 Lien copié !');closeSheet('shr')"><div class="share-icon">📋</div><div class="share-label">Copier</div></div>
+          <div class="share-item" onclick="toast('💬 Envoyé !');closeSheet('shr')"><div class="share-icon">💬</div><div class="share-label">Message</div></div>
+          <div class="share-item" onclick="toast('📱 WhatsApp !');closeSheet('shr')"><div class="share-icon">📱</div><div class="share-label">WhatsApp</div></div>
+          <div class="share-item" onclick="toast('✈️ Telegram !');closeSheet('shr')"><div class="share-icon">✈️</div><div class="share-label">Telegram</div></div>
+          <div class="share-item" onclick="toast('🐦 Twitter !');closeSheet('shr')"><div class="share-icon">🐦</div><div class="share-label">Twitter</div></div>
+          <div class="share-item" onclick="toast('👥 Facebook !');closeSheet('shr')"><div class="share-icon">👥</div><div class="share-label">Facebook</div></div>
+          <div class="share-item" onclick="toast('💾 Sauvegardé !');closeSheet('shr')"><div class="share-icon">💾</div><div class="share-label">Sauvegarder</div></div>
+          <div class="share-item" onclick="toast('🚩 Signalé');closeSheet('shr')"><div class="share-icon">🚩</div><div class="share-label">Signaler</div></div>
+        </div>
+        <div class="share-url-row">
+          <div class="share-url">connectworld.ai/flash/v/7x9k2m</div>
+          <button class="copy-btn" onclick="toast('📋 Lien copié !')">Copier le lien</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toastEl"></div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <div class="bnav">
+    <div class="bn on">
+      <div class="bn-icon">⚡</div>
+      <div class="bn-label">Flash</div>
+    </div>
+    <div class="bn">
+      <div class="bn-icon">📸</div>
+      <div class="bn-label">Moments</div>
+    </div>
+    <div class="bn-create">
+      <button class="bn-create-btn" onclick="toast('✨ Studio créateur ouvert !')">＋</button>
+    </div>
+    <div class="bn">
+      <div class="bn-icon">📺</div>
+      <div class="bn-label">Canaux</div>
+    </div>
+    <div class="bn">
+      <div class="bn-icon">👤</div>
+      <div class="bn-label">Profil</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ──────────────────────────────────────────
+   DATA
+────────────────────────────────────────── */
+const LANGS = [
+  {f:'🇫🇷',n:'Français',c:'FR'},{f:'🇬🇧',n:'English',c:'EN'},{f:'🇦🇪',n:'العربية',c:'AR'},
+  {f:'🇪🇸',n:'Español',c:'ES'},{f:'🇵🇹',n:'Português',c:'PT'},{f:'🇨🇳',n:'中文',c:'ZH'},
+  {f:'🇩🇪',n:'Deutsch',c:'DE'},{f:'🇮🇹',n:'Italiano',c:'IT'},{f:'🇷🇺',n:'Русский',c:'RU'},
+  {f:'🇯🇵',n:'日本語',c:'JA'},{f:'🇰🇷',n:'한국어',c:'KO'},{f:'🇮🇳',n:'हिन्दी',c:'HI'},
+  {f:'🇹🇷',n:'Türkçe',c:'TR'},{f:'🇳🇱',n:'Nederlands',c:'NL'},{f:'🇵🇱',n:'Polski',c:'PL'},
+  {f:'🇨🇿',n:'Čeština',c:'CS'},{f:'🇸🇪',n:'Svenska',c:'SV'},{f:'🇬🇷',n:'Ελληνικά',c:'EL'},
+  {f:'🇷🇴',n:'Română',c:'RO'},{f:'🇭🇺',n:'Magyar',c:'HU'},{f:'🇻🇳',n:'Tiếng Việt',c:'VI'},
+  {f:'🇹🇭',n:'ภาษาไทย',c:'TH'},{f:'🇮🇩',n:'Bahasa Indonesia',c:'ID'},{f:'🇲🇾',n:'Malay',c:'MS'},
+  {f:'🇲🇦',n:'Darija',c:'ARD'},{f:'🇸🇳',n:'Wolof',c:'WO'},{f:'🇨🇮',n:'Dioula',c:'DYU'},
+  {f:'🇳🇬',n:'Yoruba',c:'YO'},{f:'🇳🇬',n:'Hausa',c:'HA'},{f:'🇰🇪',n:'Swahili',c:'SW'},
+  {f:'🇪🇹',n:'Amharique',c:'AM'},{f:'🇵🇰',n:'اردو',c:'UR'},{f:'🇮🇷',n:'فارسی',c:'FA'},
+  {f:'🇺🇦',n:'Українська',c:'UK'},{f:'🇧🇬',n:'Български',c:'BG'},{f:'🇫🇮',n:'Suomi',c:'FI'},
+  {f:'🇩🇰',n:'Dansk',c:'DA'},{f:'🇳🇴',n:'Norsk',c:'NO'},{f:'🇮🇱',n:'עברית',c:'HE'},
+  {f:'🇵🇭',n:'Filipino',c:'TL'},{f:'🇦🇿',n:'Azərbaycan',c:'AZ'},{f:'🇬🇪',n:'ქართული',c:'KA'},
+  {f:'🇦🇲',n:'Հայերեն',c:'HY'},{f:'🇰🇿',n:'Қазақша',c:'KK'},{f:'🌍',n:'Bambara',c:'BM'},
+  {f:'🌍',n:'Fulani',c:'FF'},{f:'🌍',n:'Lingala',c:'LN'},{f:'🇱🇹',n:'Lietuvių',c:'LT'},
+  {f:'🇸🇰',n:'Slovenčina',c:'SK'},{f:'🇭🇷',n:'Hrvatski',c:'HR'},
+];
+
+/* SVG scene builders — rich illustrated backgrounds */
+function sceneKitchen(){
+  return `<svg viewBox="0 0 375 812" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="kg1" cx="50%" cy="40%" r="60%">
+        <stop offset="0%" stop-color="#3d1a08"/>
+        <stop offset="100%" stop-color="#1a0a03"/>
+      </radialGradient>
+      <radialGradient id="steam" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="rgba(255,255,255,0.15)"/>
+        <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+      </radialGradient>
+    </defs>
+    <rect width="375" height="812" fill="url(#kg1)"/>
+    <!-- tiles wall -->
+    <rect x="0" y="0" width="375" height="420" fill="#2a1206"/>
+    <line x1="0" y1="80" x2="375" y2="80" stroke="rgba(255,200,140,0.08)" stroke-width="1"/>
+    <line x1="0" y1="160" x2="375" y2="160" stroke="rgba(255,200,140,0.08)" stroke-width="1"/>
+    <line x1="0" y1="240" x2="375" y2="240" stroke="rgba(255,200,140,0.08)" stroke-width="1"/>
+    <line x1="0" y1="320" x2="375" y2="320" stroke="rgba(255,200,140,0.08)" stroke-width="1"/>
+    <line x1="0" y1="400" x2="375" y2="400" stroke="rgba(255,200,140,0.08)" stroke-width="1"/>
+    <line x1="75" y1="0" x2="75" y2="420" stroke="rgba(255,200,140,0.05)" stroke-width="1"/>
+    <line x1="150" y1="0" x2="150" y2="420" stroke="rgba(255,200,140,0.05)" stroke-width="1"/>
+    <line x1="225" y1="0" x2="225" y2="420" stroke="rgba(255,200,140,0.05)" stroke-width="1"/>
+    <line x1="300" y1="0" x2="300" y2="420" stroke="rgba(255,200,140,0.05)" stroke-width="1"/>
+    <!-- counter -->
+    <rect x="0" y="480" width="375" height="332" fill="#1a0d05"/>
+    <rect x="0" y="470" width="375" height="25" fill="#2c1808" rx="0"/>
+    <!-- big pan -->
+    <ellipse cx="187" cy="530" rx="120" ry="28" fill="#111"/>
+    <ellipse cx="187" cy="526" rx="116" ry="24" fill="#1a1a1a"/>
+    <ellipse cx="187" cy="524" rx="110" ry="20" fill="#0d0d0d"/>
+    <!-- pasta in pan -->
+    <ellipse cx="187" cy="522" rx="90" ry="16" fill="#e8c87a"/>
+    <ellipse cx="175" cy="518" rx="30" ry="8" fill="#d4a843" opacity="0.7"/>
+    <ellipse cx="205" cy="520" rx="25" ry="7" fill="#c8962e" opacity="0.6"/>
+    <!-- sauce -->
+    <ellipse cx="187" cy="520" rx="45" ry="10" fill="#c0392b" opacity="0.5"/>
+    <!-- steam -->
+    <ellipse cx="165" cy="490" rx="12" ry="25" fill="url(#steam)" opacity="0.6">
+      <animate attributeName="cy" values="490;460;490" dur="2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.6;0;0.6" dur="2s" repeatCount="indefinite"/>
+    </ellipse>
+    <ellipse cx="187" cy="485" rx="10" ry="22" fill="url(#steam)" opacity="0.5">
+      <animate attributeName="cy" values="485;455;485" dur="2.5s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.5;0;0.5" dur="2.5s" repeatCount="indefinite"/>
+    </ellipse>
+    <ellipse cx="210" cy="488" rx="11" ry="23" fill="url(#steam)" opacity="0.55">
+      <animate attributeName="cy" values="488;458;488" dur="2.2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.55;0;0.55" dur="2.2s" repeatCount="indefinite"/>
+    </ellipse>
+    <!-- pan handle -->
+    <rect x="290" y="518" width="72" height="12" rx="6" fill="#333"/>
+    <!-- ingredients on counter -->
+    <rect x="30" y="600" width="50" height="70" rx="8" fill="#d4a843"/>
+    <text x="55" y="638" text-anchor="middle" font-size="26">🧀</text>
+    <rect x="290" y="595" width="55" height="75" rx="8" fill="#e8e0d0"/>
+    <text x="317" y="635" text-anchor="middle" font-size="26">🥚</text>
+    <!-- pepper -->
+    <text x="187" y="700" text-anchor="middle" font-size="22">🧂</text>
+    <!-- warm light -->
+    <ellipse cx="187" cy="200" rx="180" ry="120" fill="rgba(255,180,80,0.04)"/>
+    <!-- overhead light -->
+    <rect x="140" y="0" width="95" height="8" rx="4" fill="rgba(255,220,150,0.3)"/>
+    <ellipse cx="187" cy="30" rx="80" ry="50" fill="rgba(255,220,150,0.06)"/>
+  </svg>`;
+}
+
+function sceneTech(){
+  return `<svg viewBox="0 0 375 812" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="tg1" cx="30%" cy="30%" r="70%">
+        <stop offset="0%" stop-color="#0a1628"/>
+        <stop offset="100%" stop-color="#030810"/>
+      </radialGradient>
+    </defs>
+    <rect width="375" height="812" fill="url(#tg1)"/>
+    <!-- city at night skyline -->
+    <rect x="0" y="500" width="375" height="312" fill="#05080f"/>
+    <!-- buildings -->
+    <rect x="10" y="420" width="40" height="200" fill="#0a1020"/>
+    <rect x="15" y="425" width="8" height="8" fill="#ffd700" opacity="0.6"/>
+    <rect x="27" y="425" width="8" height="8" fill="#ffd700" opacity="0.4"/>
+    <rect x="15" y="442" width="8" height="8" fill="#ffd700" opacity="0.7"/>
+    <rect x="27" y="442" width="8" height="8" fill="#ffd700" opacity="0.3"/>
+    <rect x="60" y="380" width="55" height="240" fill="#0d1525"/>
+    <rect x="65" y="390" width="10" height="10" fill="#4f9eff" opacity="0.5"/>
+    <rect x="80" y="390" width="10" height="10" fill="#4f9eff" opacity="0.3"/>
+    <rect x="95" y="390" width="10" height="10" fill="#4f9eff" opacity="0.6"/>
+    <rect x="65" y="410" width="10" height="10" fill="#4f9eff" opacity="0.4"/>
+    <rect x="80" y="410" width="10" height="10" fill="#4f9eff" opacity="0.7"/>
+    <rect x="125" y="340" width="70" height="280" fill="#0a1220"/>
+    <rect x="132" y="350" width="12" height="12" fill="#00e5ff" opacity="0.4"/>
+    <rect x="150" y="350" width="12" height="12" fill="#00e5ff" opacity="0.6"/>
+    <rect x="168" y="350" width="12" height="12" fill="#00e5ff" opacity="0.3"/>
+    <rect x="132" y="372" width="12" height="12" fill="#00e5ff" opacity="0.5"/>
+    <rect x="150" y="372" width="12" height="12" fill="#00e5ff" opacity="0.2"/>
+    <rect x="168" y="372" width="12" height="12" fill="#00e5ff" opacity="0.7"/>
+    <rect x="132" y="394" width="12" height="12" fill="#00e5ff" opacity="0.3"/>
+    <rect x="205" y="400" width="50" height="220" fill="#080e1a"/>
+    <rect x="210" y="408" width="8" height="8" fill="#7c3aed" opacity="0.6"/>
+    <rect x="223" y="408" width="8" height="8" fill="#7c3aed" opacity="0.4"/>
+    <rect x="236" y="408" width="8" height="8" fill="#7c3aed" opacity="0.7"/>
+    <rect x="265" y="360" width="65" height="260" fill="#0d1525"/>
+    <rect x="272" y="370" width="10" height="10" fill="#ff6b35" opacity="0.5"/>
+    <rect x="288" y="370" width="10" height="10" fill="#ff6b35" opacity="0.3"/>
+    <rect x="304" y="370" width="10" height="10" fill="#ff6b35" opacity="0.6"/>
+    <rect x="272" y="390" width="10" height="10" fill="#ff6b35" opacity="0.4"/>
+    <rect x="288" y="390" width="10" height="10" fill="#ff6b35" opacity="0.7"/>
+    <rect x="340" y="440" width="35" height="180" fill="#0a1020"/>
+    <!-- road / reflection -->
+    <rect x="0" y="620" width="375" height="192" fill="#060a14"/>
+    <rect x="0" y="620" width="375" height="3" fill="rgba(255,255,255,0.04)"/>
+    <!-- car lights reflection -->
+    <ellipse cx="100" cy="700" rx="60" ry="8" fill="rgba(255,200,100,0.08)"/>
+    <ellipse cx="280" cy="720" rx="45" ry="6" fill="rgba(150,200,255,0.07)"/>
+    <!-- laptop on desk (foreground) -->
+    <rect x="60" y="680" width="255" height="5" rx="2.5" fill="#1a2040"/>
+    <rect x="80" y="590" width="215" height="140" rx="8" fill="#141c30"/>
+    <rect x="85" y="595" width="205" height="128" rx="5" fill="#0a1020"/>
+    <!-- code on screen -->
+    <text x="95" y="615" font-size="7" fill="#4f6ef7" font-family="monospace">const translate = async (text, lang) =&gt; {</text>
+    <text x="95" y="627" font-size="7" fill="#10d986" font-family="monospace">  const res = await openai.translate(text);</text>
+    <text x="95" y="639" font-size="7" fill="#f7c244" font-family="monospace">  return res.translations[lang];</text>
+    <text x="95" y="651" font-size="7" fill="#4f6ef7" font-family="monospace">};</text>
+    <text x="95" y="669" font-size="7" fill="#888" font-family="monospace">// 47 langues supportées ✓</text>
+    <!-- cursor blink -->
+    <rect x="95" y="671" width="5" height="9" fill="#4f6ef7" opacity="0.8">
+      <animate attributeName="opacity" values="0.8;0;0.8" dur="1s" repeatCount="indefinite"/>
+    </rect>
+    <!-- network nodes floating -->
+    <circle cx="50" cy="200" r="4" fill="#4f6ef7" opacity="0.6"><animate attributeName="cy" values="200;190;200" dur="3s" repeatCount="indefinite"/></circle>
+    <circle cx="320" cy="150" r="3" fill="#10d986" opacity="0.5"><animate attributeName="cy" values="150;140;150" dur="2.5s" repeatCount="indefinite"/></circle>
+    <circle cx="150" cy="250" r="5" fill="#7c3aed" opacity="0.4"><animate attributeName="cy" values="250;238;250" dur="3.5s" repeatCount="indefinite"/></circle>
+    <line x1="50" y1="200" x2="150" y2="250" stroke="rgba(79,110,247,0.15)" stroke-width="1"/>
+    <line x1="150" y1="250" x2="320" y2="150" stroke="rgba(16,217,134,0.12)" stroke-width="1"/>
+    <line x1="50" y1="200" x2="320" y2="150" stroke="rgba(124,58,237,0.1)" stroke-width="1"/>
+  </svg>`;
+}
+
+function sceneMusic(){
+  return `<svg viewBox="0 0 375 812" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="mg1" cx="50%" cy="50%" r="60%">
+        <stop offset="0%" stop-color="#1a0530"/>
+        <stop offset="100%" stop-color="#060010"/>
+      </radialGradient>
+      <radialGradient id="spot" cx="50%" cy="35%" r="40%">
+        <stop offset="0%" stop-color="rgba(200,100,255,0.3)"/>
+        <stop offset="100%" stop-color="rgba(0,0,0,0)"/>
+      </radialGradient>
+      <radialGradient id="spot2" cx="25%" cy="60%" r="30%">
+        <stop offset="0%" stop-color="rgba(80,120,255,0.25)"/>
+        <stop offset="100%" stop-color="rgba(0,0,0,0)"/>
+      </radialGradient>
+    </defs>
+    <rect width="375" height="812" fill="url(#mg1)"/>
+    <rect width="375" height="812" fill="url(#spot)"/>
+    <rect width="375" height="812" fill="url(#spot2)"/>
+    <!-- stage floor -->
+    <rect x="0" y="600" width="375" height="212" fill="#0d0020"/>
+    <rect x="0" y="598" width="375" height="6" fill="#7c3aed" opacity="0.4"/>
+    <!-- crowd silhouettes -->
+    <ellipse cx="40" cy="720" rx="20" ry="50" fill="#0a001a"/>
+    <ellipse cx="80" cy="710" rx="18" ry="60" fill="#080015"/>
+    <ellipse cx="120" cy="725" rx="22" ry="45" fill="#0a001a"/>
+    <ellipse cx="160" cy="708" rx="19" ry="62" fill="#070012"/>
+    <ellipse cx="200" cy="720" rx="21" ry="50" fill="#0a001a"/>
+    <ellipse cx="240" cy="712" rx="18" ry="58" fill="#080015"/>
+    <ellipse cx="280" cy="718" rx="20" ry="52" fill="#0a001a"/>
+    <ellipse cx="320" cy="710" rx="22" ry="60" fill="#070012"/>
+    <ellipse cx="355" cy="722" rx="18" ry="48" fill="#0a001a"/>
+    <!-- raised hands -->
+    <rect x="38" y="675" width="4" height="20" rx="2" fill="#150030"/>
+    <rect x="78" y="665" width="4" height="22" rx="2" fill="#120028"/>
+    <rect x="158" y="668" width="4" height="18" rx="2" fill="#150030"/>
+    <rect x="238" y="670" width="4" height="20" rx="2" fill="#120028"/>
+    <rect x="318" y="666" width="4" height="22" rx="2" fill="#150030"/>
+    <!-- light beams from top -->
+    <polygon points="60,0 80,0 200,598 140,598" fill="rgba(200,100,255,0.05)"/>
+    <polygon points="150,0 170,0 270,598 210,598" fill="rgba(80,120,255,0.06)"/>
+    <polygon points="280,0 300,0 350,598 300,598" fill="rgba(255,80,150,0.04)"/>
+    <!-- DJ booth / instrument -->
+    <rect x="100" y="440" width="175" height="80" rx="10" fill="#1a0535"/>
+    <rect x="100" y="440" width="175" height="80" rx="10" fill="none" stroke="#7c3aed" stroke-width="1.5" stroke-opacity="0.6"/>
+    <!-- turntable -->
+    <circle cx="155" cy="480" r="30" fill="#0d0020"/>
+    <circle cx="155" cy="480" r="26" fill="#1a0535"/>
+    <circle cx="155" cy="480" r="18" fill="#0a0015" stroke="#7c3aed" stroke-width="1" stroke-opacity="0.5"/>
+    <circle cx="155" cy="480" r="4" fill="#c084fc"/>
+    <!-- arm -->
+    <line x1="178" y1="457" x2="163" y2="474" stroke="#c084fc" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="178" cy="457" r="3" fill="#c084fc"/>
+    <!-- mixer knobs -->
+    <circle cx="222" cy="462" r="8" fill="#2a0545" stroke="#7c3aed" stroke-width="1" stroke-opacity="0.5"/>
+    <circle cx="246" cy="462" r="8" fill="#2a0545" stroke="#7c3aed" stroke-width="1" stroke-opacity="0.5"/>
+    <circle cx="222" cy="488" r="8" fill="#2a0545" stroke="#c084fc" stroke-width="1" stroke-opacity="0.5"/>
+    <circle cx="246" cy="488" r="8" fill="#2a0545" stroke="#c084fc" stroke-width="1" stroke-opacity="0.5"/>
+    <!-- sound waves visual -->
+    <rect x="0" y="300" width="375" height="140" fill="none"/>
+    <!-- equalizer bars -->
+    <rect x="20" y="380" width="8" height="50" rx="4" fill="#7c3aed" opacity="0.7">
+      <animate attributeName="height" values="50;20;70;35;50" dur="0.8s" repeatCount="indefinite"/>
+      <animate attributeName="y" values="380;410;360;395;380" dur="0.8s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="34" y="370" width="8" height="70" rx="4" fill="#c084fc" opacity="0.6">
+      <animate attributeName="height" values="70;90;30;60;70" dur="0.6s" repeatCount="indefinite"/>
+      <animate attributeName="y" values="370;350;410;380;370" dur="0.6s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="48" y="385" width="8" height="40" rx="4" fill="#7c3aed" opacity="0.5">
+      <animate attributeName="height" values="40;65;25;50;40" dur="1s" repeatCount="indefinite"/>
+      <animate attributeName="y" values="385;360;400;375;385" dur="1s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="325" y="375" width="8" height="55" rx="4" fill="#c084fc" opacity="0.7">
+      <animate attributeName="height" values="55;30;75;45;55" dur="0.7s" repeatCount="indefinite"/>
+      <animate attributeName="y" values="375;400;355;385;375" dur="0.7s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="339" y="368" width="8" height="70" rx="4" fill="#7c3aed" opacity="0.6">
+      <animate attributeName="height" values="70;45;85;60;70" dur="0.9s" repeatCount="indefinite"/>
+      <animate attributeName="y" values="368;393;353;378;368" dur="0.9s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="353" y="380" width="8" height="48" rx="4" fill="#c084fc" opacity="0.5">
+      <animate attributeName="height" values="48;70;28;55;48" dur="1.1s" repeatCount="indefinite"/>
+      <animate attributeName="y" values="380;358;400;373;380" dur="1.1s" repeatCount="indefinite"/>
+    </rect>
+    <!-- floating music notes -->
+    <text x="260" y="200" font-size="28" fill="rgba(200,130,255,0.5)">♪</text>
+    <text x="80" y="260" font-size="20" fill="rgba(130,160,255,0.4)">♫</text>
+    <text x="310" y="320" font-size="16" fill="rgba(200,130,255,0.3)">♩</text>
+  </svg>`;
+}
+
+function sceneFitness(){
+  return `<svg viewBox="0 0 375 812" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="fg1" cx="50%" cy="40%" r="65%">
+        <stop offset="0%" stop-color="#0a1f08"/>
+        <stop offset="100%" stop-color="#030a02"/>
+      </radialGradient>
+      <radialGradient id="fspot" cx="50%" cy="30%" r="45%">
+        <stop offset="0%" stop-color="rgba(16,217,134,0.12)"/>
+        <stop offset="100%" stop-color="rgba(0,0,0,0)"/>
+      </radialGradient>
+    </defs>
+    <rect width="375" height="812" fill="url(#fg1)"/>
+    <rect width="375" height="812" fill="url(#fspot)"/>
+    <!-- gym floor -->
+    <rect x="0" y="580" width="375" height="232" fill="#050f04"/>
+    <!-- rubber mat texture lines -->
+    <line x1="0" y1="600" x2="375" y2="600" stroke="rgba(16,217,134,0.06)" stroke-width="1"/>
+    <line x1="0" y1="640" x2="375" y2="640" stroke="rgba(16,217,134,0.04)" stroke-width="1"/>
+    <line x1="0" y1="680" x2="375" y2="680" stroke="rgba(16,217,134,0.04)" stroke-width="1"/>
+    <!-- mirrors on wall -->
+    <rect x="0" y="0" width="375" height="580" fill="#04100a"/>
+    <rect x="10" y="20" width="160" height="400" rx="4" fill="#071410" stroke="rgba(16,217,134,0.1)" stroke-width="1"/>
+    <rect x="205" y="20" width="160" height="400" rx="4" fill="#071410" stroke="rgba(16,217,134,0.1)" stroke-width="1"/>
+    <!-- reflection shimmer -->
+    <rect x="10" y="20" width="160" height="400" rx="4" fill="rgba(255,255,255,0.012)"/>
+    <!-- barbell rack -->
+    <rect x="20" y="460" width="335" height="12" rx="6" fill="#1a2a1a"/>
+    <rect x="30" y="430" width="8" height="42" rx="4" fill="#0f1f0f"/>
+    <rect x="337" y="430" width="8" height="42" rx="4" fill="#0f1f0f"/>
+    <!-- weights on rack -->
+    <rect x="50" y="440" width="20" height="24" rx="4" fill="#10d986" opacity="0.7"/>
+    <rect x="76" y="440" width="20" height="24" rx="4" fill="#10d986" opacity="0.5"/>
+    <rect x="102" y="440" width="20" height="24" rx="4" fill="#0ea571" opacity="0.7"/>
+    <rect x="200" y="440" width="20" height="24" rx="4" fill="#10d986" opacity="0.6"/>
+    <rect x="226" y="440" width="20" height="24" rx="4" fill="#0ea571" opacity="0.5"/>
+    <!-- big barbell foreground -->
+    <rect x="30" y="540" width="315" height="10" rx="5" fill="#1c2c1c"/>
+    <rect x="30" y="524" width="42" height="32" rx="6" fill="#10d986" opacity="0.8"/>
+    <rect x="78" y="528" width="30" height="24" rx="5" fill="#0ea571" opacity="0.7"/>
+    <rect x="303" y="524" width="42" height="32" rx="6" fill="#10d986" opacity="0.8"/>
+    <rect x="267" y="528" width="30" height="24" rx="5" fill="#0ea571" opacity="0.7"/>
+    <!-- person silhouette lifting -->
+    <ellipse cx="187" cy="360" rx="22" ry="22" fill="#051208"/>
+    <rect x="175" y="378" width="24" height="60" rx="8" fill="#051208"/>
+    <!-- arms reaching up -->
+    <rect x="148" y="350" width="32" height="10" rx="5" fill="#051208"/>
+    <rect x="195" y="350" width="32" height="10" rx="5" fill="#051208"/>
+    <!-- stats overlay (HUD style) -->
+    <rect x="22" y="80" width="100" height="48" rx="8" fill="rgba(16,217,134,0.08)" stroke="rgba(16,217,134,0.2)" stroke-width="1"/>
+    <text x="32" y="100" font-size="9" fill="rgba(16,217,134,0.6)" font-family="monospace">CALORIES</text>
+    <text x="32" y="118" font-size="16" fill="#10d986" font-weight="bold" font-family="monospace">487</text>
+    <rect x="253" y="80" width="100" height="48" rx="8" fill="rgba(16,217,134,0.08)" stroke="rgba(16,217,134,0.2)" stroke-width="1"/>
+    <text x="263" y="100" font-size="9" fill="rgba(16,217,134,0.6)" font-family="monospace">BPM</text>
+    <text x="263" y="118" font-size="16" fill="#10d986" font-weight="bold" font-family="monospace">142</text>
+    <!-- heartbeat line -->
+    <polyline points="22,160 60,160 70,140 80,180 90,150 100,160 140,160 150,130 160,185 170,155 180,160 220,160 230,145 240,175 250,158 260,160 353,160" fill="none" stroke="#10d986" stroke-width="1.5" stroke-opacity="0.5"/>
+    <!-- water bottle -->
+    <rect x="340" y="560" width="20" height="45" rx="6" fill="#0d1f0d" stroke="rgba(16,217,134,0.3)" stroke-width="1"/>
+    <rect x="346" y="553" width="8" height="10" rx="3" fill="#0d1f0d"/>
+  </svg>`;
+}
+
+function sceneTravel(){
+  return `<svg viewBox="0 0 375 812" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="sky" cx="50%" cy="0%" r="80%">
+        <stop offset="0%" stop-color="#1a3a6e"/>
+        <stop offset="60%" stop-color="#0d1f45"/>
+        <stop offset="100%" stop-color="#060c20"/>
+      </radialGradient>
+      <radialGradient id="sun" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="rgba(255,200,80,0.9)"/>
+        <stop offset="60%" stop-color="rgba(255,140,40,0.4)"/>
+        <stop offset="100%" stop-color="rgba(255,100,0,0)"/>
+      </radialGradient>
+    </defs>
+    <rect width="375" height="812" fill="url(#sky)"/>
+    <!-- sunset glow -->
+    <ellipse cx="187" cy="480" rx="300" ry="200" fill="rgba(255,120,30,0.1)"/>
+    <ellipse cx="187" cy="520" rx="250" ry="150" fill="rgba(255,80,0,0.08)"/>
+    <!-- horizon / Seine river -->
+    <rect x="0" y="520" width="375" height="292" fill="#04091a"/>
+    <!-- water reflection shimmer -->
+    <rect x="0" y="520" width="375" height="8" fill="rgba(255,140,30,0.2)"/>
+    <ellipse cx="187" cy="530" rx="200" ry="20" fill="rgba(255,140,30,0.08)"/>
+    <!-- Eiffel Tower -->
+    <polygon points="187,100 165,500 210,500" fill="#0a1428"/>
+    <polygon points="187,100 170,320 204,320" fill="#0d1835"/>
+    <polygon points="187,200 174,350 200,350" fill="#0a1428"/>
+    <!-- tower levels -->
+    <rect x="165" y="310" width="44" height="8" rx="2" fill="#0d1835"/>
+    <rect x="168" y="390" width="38" height="8" rx="2" fill="#0d1835"/>
+    <rect x="171" y="450" width="32" height="8" rx="2" fill="#0a1428"/>
+    <rect x="172" y="488" width="30" height="8" rx="2" fill="#0d1835"/>
+    <!-- tower lights -->
+    <circle cx="187" cy="105" r="4" fill="#ffd700" opacity="0.9">
+      <animate attributeName="opacity" values="0.9;0.4;0.9" dur="2s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="175" cy="314" r="2" fill="#ffd700" opacity="0.7"/>
+    <circle cx="200" cy="314" r="2" fill="#ffd700" opacity="0.7"/>
+    <circle cx="172" cy="394" r="2" fill="#ffd700" opacity="0.6"/>
+    <circle cx="203" cy="394" r="2" fill="#ffd700" opacity="0.6"/>
+    <!-- sparkle lights on tower -->
+    <circle cx="178" cy="220" r="1.5" fill="#fffacd" opacity="0.8">
+      <animate attributeName="opacity" values="0.8;0.1;0.8" dur="0.5s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="196" cy="260" r="1.5" fill="#fffacd" opacity="0.7">
+      <animate attributeName="opacity" values="0.7;0.1;0.7" dur="0.7s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="183" cy="340" r="1.5" fill="#fffacd" opacity="0.8">
+      <animate attributeName="opacity" values="0.8;0.2;0.8" dur="0.4s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="191" cy="300" r="1.5" fill="#fffacd" opacity="0.6">
+      <animate attributeName="opacity" values="0.6;0.1;0.6" dur="0.6s" repeatCount="indefinite"/>
+    </circle>
+    <!-- buildings left -->
+    <rect x="0" y="380" width="60" height="200" fill="#080d1e"/>
+    <rect x="10" y="360" width="45" height="220" fill="#0a1228"/>
+    <rect x="18" y="368" width="6" height="6" fill="#ffd700" opacity="0.4"/>
+    <rect x="30" y="368" width="6" height="6" fill="#ffd700" opacity="0.3"/>
+    <rect x="18" y="382" width="6" height="6" fill="#ffd700" opacity="0.5"/>
+    <rect x="30" y="382" width="6" height="6" fill="#4f9eff" opacity="0.4"/>
+    <rect x="60" y="400" width="50" height="180" fill="#06101e"/>
+    <rect x="66" y="410" width="8" height="8" fill="#ffd700" opacity="0.35"/>
+    <rect x="80" y="410" width="8" height="8" fill="#ffd700" opacity="0.5"/>
+    <rect x="66" y="428" width="8" height="8" fill="#4f9eff" opacity="0.4"/>
+    <rect x="80" y="428" width="8" height="8" fill="#ffd700" opacity="0.3"/>
+    <!-- buildings right -->
+    <rect x="265" y="390" width="110" height="190" fill="#080d1e"/>
+    <rect x="275" y="410" width="8" height="8" fill="#ffd700" opacity="0.4"/>
+    <rect x="290" y="410" width="8" height="8" fill="#4f9eff" opacity="0.5"/>
+    <rect x="310" y="410" width="8" height="8" fill="#ffd700" opacity="0.3"/>
+    <rect x="275" y="428" width="8" height="8" fill="#ffd700" opacity="0.5"/>
+    <rect x="290" y="428" width="8" height="8" fill="#4f9eff" opacity="0.3"/>
+    <rect x="310" y="428" width="8" height="8" fill="#ffd700" opacity="0.45"/>
+    <rect x="315" y="370" width="60" height="210" fill="#06101e"/>
+    <!-- water ripples -->
+    <ellipse cx="187" cy="560" rx="80" ry="8" fill="rgba(255,140,30,0.06)"/>
+    <ellipse cx="100" cy="580" rx="50" ry="5" fill="rgba(255,200,80,0.04)"/>
+    <ellipse cx="280" cy="575" rx="60" ry="6" fill="rgba(255,200,80,0.04)"/>
+    <!-- bridge -->
+    <rect x="0" y="508" width="375" height="20" rx="0" fill="#0a1428"/>
+    <rect x="30" y="490" width="12" height="40" rx="3" fill="#0d1835"/>
+    <rect x="90" y="486" width="12" height="44" rx="3" fill="#0d1835"/>
+    <rect x="160" y="490" width="12" height="40" rx="3" fill="#0d1835"/>
+    <rect x="230" y="486" width="12" height="44" rx="3" fill="#0d1835"/>
+    <rect x="300" y="490" width="12" height="40" rx="3" fill="#0d1835"/>
+    <rect x="345" y="492" width="12" height="38" rx="3" fill="#0d1835"/>
+    <!-- stars -->
+    <circle cx="50" cy="60" r="1" fill="#fff" opacity="0.8"/>
+    <circle cx="100" cy="40" r="1.5" fill="#fff" opacity="0.6"/>
+    <circle cx="280" cy="55" r="1" fill="#fff" opacity="0.7"/>
+    <circle cx="320" cy="80" r="1.5" fill="#fff" opacity="0.5"/>
+    <circle cx="240" cy="30" r="1" fill="#fff" opacity="0.9"/>
+    <circle cx="140" cy="70" r="1" fill="#fff" opacity="0.6"/>
+    <circle cx="350" cy="45" r="1" fill="#fff" opacity="0.8"/>
+  </svg>`;
+}
+
+function sceneArt(){
+  return `<svg viewBox="0 0 375 812" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="ag1" cx="50%" cy="50%" r="60%">
+        <stop offset="0%" stop-color="#1a0a20"/>
+        <stop offset="100%" stop-color="#080308"/>
+      </radialGradient>
+    </defs>
+    <rect width="375" height="812" fill="url(#ag1)"/>
+    <!-- canvas on easel -->
+    <rect x="80" y="140" width="215" height="280" rx="4" fill="#f5f0e8" stroke="#1a0a20" stroke-width="2"/>
+    <!-- colorful abstract painting -->
+    <ellipse cx="187" cy="220" rx="70" ry="60" fill="#e74c3c" opacity="0.8"/>
+    <ellipse cx="145" cy="260" rx="50" ry="40" fill="#3498db" opacity="0.7"/>
+    <ellipse cx="225" cy="255" rx="45" ry="50" fill="#f39c12" opacity="0.7"/>
+    <ellipse cx="187" cy="300" rx="55" ry="45" fill="#9b59b6" opacity="0.6"/>
+    <ellipse cx="160" cy="230" rx="30" ry="35" fill="#1abc9c" opacity="0.65"/>
+    <ellipse cx="215" cy="340" rx="40" ry="30" fill="#e74c3c" opacity="0.5"/>
+    <ellipse cx="155" cy="350" rx="35" ry="25" fill="#f39c12" opacity="0.55"/>
+    <!-- easel legs -->
+    <line x1="80" y1="420" x2="60" y2="600" stroke="#2c1808" stroke-width="5" stroke-linecap="round"/>
+    <line x1="295" y1="420" x2="315" y2="600" stroke="#2c1808" stroke-width="5" stroke-linecap="round"/>
+    <line x1="100" y1="420" x2="80" y2="620" stroke="#2c1808" stroke-width="3" stroke-linecap="round" opacity="0.5"/>
+    <!-- palette -->
+    <ellipse cx="80" cy="520" rx="45" ry="32" fill="#f5f0e8"/>
+    <circle cx="58" cy="510" r="8" fill="#e74c3c"/>
+    <circle cx="75" cy="505" r="7" fill="#3498db"/>
+    <circle cx="92" cy="504" r="7" fill="#f39c12"/>
+    <circle cx="108" cy="510" r="8" fill="#9b59b6"/>
+    <circle cx="100" cy="526" r="7" fill="#1abc9c"/>
+    <circle cx="68" cy="528" r="8" fill="#e67e22"/>
+    <ellipse cx="80" cy="520" rx="10" ry="7" fill="#c8bfae"/>
+    <!-- paint brushes -->
+    <line x1="295" y1="480" x2="330" y2="560" stroke="#8B4513" stroke-width="4" stroke-linecap="round"/>
+    <ellipse cx="297" cy="477" rx="4" ry="8" fill="#e74c3c"/>
+    <line x1="310" y1="470" x2="345" y2="555" stroke="#8B4513" stroke-width="4" stroke-linecap="round"/>
+    <ellipse cx="312" cy="467" rx="4" ry="8" fill="#3498db"/>
+    <!-- color splashes on floor -->
+    <ellipse cx="100" cy="650" rx="30" ry="15" fill="#e74c3c" opacity="0.2"/>
+    <ellipse cx="260" cy="680" rx="25" ry="12" fill="#3498db" opacity="0.2"/>
+    <ellipse cx="187" cy="700" rx="20" ry="10" fill="#f39c12" opacity="0.2"/>
+    <!-- small framed artworks on wall -->
+    <rect x="20" y="200" width="50" height="60" rx="3" fill="#f5f0e8" stroke="#2c1808" stroke-width="1.5"/>
+    <ellipse cx="45" cy="230" rx="18" ry="22" fill="#9b59b6" opacity="0.7"/>
+    <ellipse cx="45" cy="225" rx="12" ry="15" fill="#e74c3c" opacity="0.6"/>
+    <rect x="305" y="220" width="50" height="55" rx="3" fill="#f5f0e8" stroke="#2c1808" stroke-width="1.5"/>
+    <rect x="315" y="228" width="30" height="20" rx="2" fill="#1abc9c" opacity="0.6"/>
+    <rect x="320" y="252" width="20" height="14" rx="2" fill="#f39c12" opacity="0.6"/>
+    <!-- floating dots of paint -->
+    <circle cx="50" cy="350" r="3" fill="#e74c3c" opacity="0.5"/>
+    <circle cx="320" cy="370" r="4" fill="#3498db" opacity="0.4"/>
+    <circle cx="150" cy="120" r="3" fill="#9b59b6" opacity="0.5"/>
+    <circle cx="250" cy="115" r="4" fill="#f39c12" opacity="0.4"/>
+    <circle cx="30" cy="500" r="5" fill="#1abc9c" opacity="0.3"/>
+    <!-- studio floor -->
+    <rect x="0" y="620" width="375" height="192" fill="#0d0508"/>
+    <rect x="0" y="620" width="375" height="3" fill="rgba(255,255,255,0.03)"/>
+  </svg>`;
+}
+
+const VIDEOS = [
+  {
+    id:0, scene:'kitchen', src:'IT', tgt:'FR',
+    user:'chef_marco', name:'Marco Rossi', av:'🇮🇹',
+    desc:'Recette facile de pâtes carbonara authentiques ! Ingrédients simples, résultat incroyable 😍',
+    tags:'#cuisine #italie #recette #carbonara',
+    likes:24180, cmts:892, shares:3401, music:'🎵 Bella Italia — Acoustic Mix',
+    comments:[
+      {av:'😊',u:'@sofia_r',t:'Incroyable recette ! Je vais essayer ce soir 🔥'},
+      {av:'🌍',u:'@diallo_k',t:'Merci pour la traduction automatique, je comprends tout maintenant !'},
+      {av:'👨‍🍳',u:'@chef_paris',t:'Recette authentique, bravo chef !'},
+      {av:'🇫🇷',u:'@marie_c',t:'La carbonara SANS crème, enfin ! Merci'},
+    ]
+  },
+  {
+    id:1, scene:'tech', src:'WO', tgt:'FR',
+    user:'amara_tech', name:'Amara Diallo', av:'🇸🇳',
+    desc:'Comment j\'ai trouvé mon emploi de dev à Paris grâce à ConnectWorld AI — mon histoire vraie 🚀',
+    tags:'#tech #migration #emploi #diaspora',
+    likes:41820, cmts:2140, shares:8900, music:'🎵 African Tech Vibes — LoFi',
+    comments:[
+      {av:'💻',u:'@dev_dakar',t:'Inspirant ! Moi aussi j\'ai la même histoire de migration'},
+      {av:'🚀',u:'@startup_afr',t:'ConnectWorld AI a vraiment changé ma vie aussi !'},
+      {av:'❤️',u:'@amara_fan',t:'Continue comme ça, tu es une inspiration !'},
+      {av:'🌟',u:'@tech_girl',t:'Représentation de la diaspora africaine 💪'},
+    ]
+  },
+  {
+    id:2, scene:'music', src:'AR', tgt:'FR',
+    user:'yasmina_music', name:'Yasmina K.', av:'🇲🇦',
+    desc:'Ma nouvelle chanson — mix entre la musique gnaoua et l\'électro moderne. Qu\'en pensez-vous ? 🎶',
+    tags:'#musique #maroc #gnaoua #fusion',
+    likes:18360, cmts:567, shares:2100, music:'🎵 Gnaoua Electro — Original',
+    comments:[
+      {av:'🎶',u:'@music_fan',t:'La fusion gnaoua + électro c\'est absolument magique !'},
+      {av:'🇲🇦',u:'@hassan_m',t:'Fierté marocaine ! On est avec toi ❤️'},
+      {av:'🎵',u:'@soundwave',t:'Disponible sur Spotify bientôt ?'},
+      {av:'✨',u:'@artist_eye',t:'Talent incroyable, continue !'},
+    ]
+  },
+  {
+    id:3, scene:'fitness', src:'PT', tgt:'FR',
+    user:'carlos_fit', name:'Carlos Mendes', av:'🇧🇷',
+    desc:'Entraînement 15 min par jour = transformation en 30 jours ! Résultats garantis 💪',
+    tags:'#fitness #sport #motivation #workout',
+    likes:55200, cmts:3400, shares:12000, music:'🎵 Power Up — Workout Beats',
+    comments:[
+      {av:'💪',u:'@fit_life',t:'J\'ai essayé et ça marche vraiment, -5kg en un mois !'},
+      {av:'🏃',u:'@runner_x',t:'30 jours challenge accepté ! Merci Carlos'},
+      {av:'🌱',u:'@healthy_me',t:'Merci pour la motivation, tu changes des vies !'},
+      {av:'🔥',u:'@sports_fan',t:'Feu cette routine, les résultats sont réels !'},
+    ]
+  },
+  {
+    id:4, scene:'travel', src:'ZH', tgt:'FR',
+    user:'nadia_travel', name:'Nadia Chen', av:'🇨🇳',
+    desc:'Top 5 endroits cachés à Paris que les touristes ne connaissent pas — guide exclusif ✈️',
+    tags:'#paris #voyage #tips #france',
+    likes:31700, cmts:1200, shares:5600, music:'🎵 French Café — Acoustic',
+    comments:[
+      {av:'🗺️',u:'@explore_paris',t:'Le spot au bord du canal est incroyable !'},
+      {av:'📸',u:'@photo_paris',t:'J\'y suis allé hier grâce à toi, top conseil !'},
+      {av:'❤️',u:'@paris_lover',t:'Merci pour ce guide, on attend la suite'},
+      {av:'✈️',u:'@world_traveler',t:'Partage d\'autres villes européennes ?'},
+    ]
+  },
+  {
+    id:5, scene:'art', src:'AR', tgt:'FR',
+    user:'sara_art', name:'Sara Ben Ali', av:'🇩🇿',
+    desc:'Dessiner un portrait en 60 secondes avec juste un stylo — technique de speedart incroyable 🎨',
+    tags:'#art #dessin #speedart #portrait',
+    likes:19400, cmts:741, shares:2800, music:'🎵 Creative Flow — Chill Beats',
+    comments:[
+      {av:'🎨',u:'@art_lover',t:'Waouh, en 60 secondes ?! C\'est incroyable !'},
+      {av:'✏️',u:'@sketch_fan',t:'Technique impressionnante, un vrai talent !'},
+      {av:'👁️',u:'@creative',t:'Tuto complet possible ? Je veux apprendre !'},
+      {av:'🌟',u:'@art_school',t:'Talent naturel, bravo !'},
+    ]
+  },
+];
+
+const SCENES = {kitchen:sceneKitchen, tech:sceneTech, music:sceneMusic, fitness:sceneFitness, travel:sceneTravel, art:sceneArt};
+
+/* ──────────────────────────────────────────
+   STATE
+────────────────────────────────────────── */
+let cur = 0;
+const liked = new Set();
+const following = new Set();
+let selLang = {f:'🇫🇷', n:'Français', c:'FR'};
+let progW = 0, progTimer = null;
+let allLangs = [...LANGS];
+
+/* ──────────────────────────────────────────
+   BUILD CARDS
+────────────────────────────────────────── */
+function fmt(n){ return n >= 1000 ? (n/1000).toFixed(1) + 'K' : n; }
+
+function buildCards(){
+  const wrap = document.getElementById('cards');
+  wrap.innerHTML = VIDEOS.map((v,i) => `
+    <div class="vcard ${i===0?'cur':i===1?'below':'hidden'}" id="vc${i}">
+      <div class="scene">${SCENES[v.scene]()}</div>
+      <div class="scene-overlay"></div>
+      <div class="top-nav">
+        <div class="tnav-tab">Abonnements</div>
+        <div class="tnav-tab on">Pour toi</div>
+        <div class="tnav-tab">Live</div>
+      </div>
+      <div class="bot-info">
+        <div class="user-row">
+          <div class="u-avatar" onclick="toast('Profil @${v.user}')">${v.av}</div>
+          <div class="u-name">@${v.user}</div>
+          <button class="follow-btn${following.has(i)?' on':''}" id="fb${i}" onclick="toggleFollow(${i},event)">
+            ${following.has(i)?'✓ Suivi':'+ Suivre'}
+          </button>
+        </div>
+        <div class="v-desc">${v.desc}</div>
+        <div class="v-tags">${v.tags}</div>
+        <div class="v-music">
+          <div class="music-disc">♪</div>
+          <span>${v.music}</span>
+        </div>
+      </div>
+      <div class="side-actions">
+        <div class="act${liked.has(i)?' liked':''}" id="la${i}" onclick="toggleLike(${i})">
+          <div class="act-icon">${liked.has(i)?'❤️':'🤍'}</div>
+          <div class="act-label" id="lc${i}">${fmt(v.likes)}</div>
+        </div>
+        <div class="act" onclick="openCmt(${i})">
+          <div class="act-icon">💬</div>
+          <div class="act-label">${fmt(v.cmts)}</div>
+        </div>
+        <div class="act" onclick="openShare()">
+          <div class="act-icon">↗️</div>
+          <div class="act-label">${fmt(v.shares)}</div>
+        </div>
+        <div class="act" onclick="toast('🔖 Sauvegardé !')">
+          <div class="act-icon">🔖</div>
+          <div class="act-label">Sauver</div>
+        </div>
+        <div class="act" onclick="toast('⋯ Plus d\'options')">
+          <div class="act-icon" style="font-size:16px;font-weight:700;letter-spacing:1px">•••</div>
+          <div class="act-label">Plus</div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+
+  updateXlateBtn();
+
+  /* swipe / wheel */
+  const feed = document.getElementById('feed');
+  let sy = 0, drag = false;
+  feed.addEventListener('touchstart', e => { sy = e.touches[0].clientY; drag = true; });
+  feed.addEventListener('touchmove', e => { if(drag) e.preventDefault(); }, {passive:false});
+  feed.addEventListener('touchend', e => {
+    if(!drag) return;
+    const dy = sy - e.changedTouches[0].clientY;
+    if(dy > 40) nextV(); else if(dy < -40) prevV();
+    drag = false;
+  });
+  feed.addEventListener('wheel', e => {
+    e.preventDefault();
+    if(e.deltaY > 25) nextV(); else if(e.deltaY < -25) prevV();
+  }, {passive:false});
+
+  startProg();
+}
+
+/* ──────────────────────────────────────────
+   NAVIGATION
+────────────────────────────────────────── */
+function gotoV(n){
+  const prev = cur;
+  cur = (n + VIDEOS.length) % VIDEOS.length;
+
+  VIDEOS.forEach((_,i) => {
+    const el = document.getElementById('vc'+i);
+    el.className = 'vcard';
+    if(i === cur) el.classList.add('cur');
+    else if(i === (cur+1) % VIDEOS.length) { el.classList.add('below'); }
+    else if(i === (cur-1+VIDEOS.length) % VIDEOS.length) el.classList.add('above');
+    else el.classList.add('hidden');
+  });
+
+  closeLangPanel();
+  updateXlateBtn();
+  startProg();
+}
+function nextV(){ gotoV(cur + 1); }
+function prevV(){ gotoV(cur - 1); }
+
+/* ──────────────────────────────────────────
+   PROGRESS BAR
+────────────────────────────────────────── */
+function startProg(){
+  clearInterval(progTimer);
+  progW = 0;
+  document.getElementById('pf').style.width = '0%';
+  progTimer = setInterval(() => {
+    progW += 0.4;
+    document.getElementById('pf').style.width = Math.min(progW,100) + '%';
+    if(progW >= 100) nextV();
+  }, 100);
+}
+
+/* ──────────────────────────────────────────
+   LIKE / FOLLOW
+────────────────────────────────────────── */
+function toggleLike(i){
+  const wasLiked = liked.has(i);
+  wasLiked ? liked.delete(i) : liked.add(i);
+  const el = document.getElementById('la'+i);
+  el.className = 'act' + (liked.has(i) ? ' liked' : '');
+  el.querySelector('.act-icon').textContent = liked.has(i) ? '❤️' : '🤍';
+  document.getElementById('lc'+i).textContent = fmt(VIDEOS[i].likes + (liked.has(i)?1:0));
+  if(liked.has(i)) toast('❤️ Vous aimez cette vidéo !');
+}
+
+function toggleFollow(i, e){
+  e.stopPropagation();
+  following.has(i) ? following.delete(i) : following.add(i);
+  const btn = document.getElementById('fb'+i);
+  btn.className = 'follow-btn' + (following.has(i) ? ' on' : '');
+  btn.textContent = following.has(i) ? '✓ Suivi' : '+ Suivre';
+  toast(following.has(i) ? '✅ Abonné à @'+VIDEOS[i].user : '👋 Désabonné de @'+VIDEOS[i].user);
+}
+
+/* ──────────────────────────────────────────
+   TRANSLATE
+────────────────────────────────────────── */
+function updateXlateBtn(){
+  const v = VIDEOS[cur];
+  document.getElementById('xlateLabel').textContent = `🌐 ${v.src} → ${selLang.c}`;
+}
+
+function toggleLangPanel(){
+  const p = document.getElementById('langPanel');
+  const isOpen = p.classList.contains('open');
+  p.classList.toggle('open', !isOpen);
+  if(!isOpen){
+    renderLangs('');
+    const s = document.getElementById('lpSearch');
+    s.value = '';
+    setTimeout(() => s.focus(), 50);
+  }
+}
+function closeLangPanel(){ document.getElementById('langPanel').classList.remove('open'); }
+
+function renderLangs(q){
+  const f = q ? LANGS.filter(l =>
+    l.n.toLowerCase().includes(q.toLowerCase()) ||
+    l.c.toLowerCase().includes(q.toLowerCase())
+  ) : LANGS;
+
+  document.getElementById('lpGrid').innerHTML = f.map(l => `
+    <div class="lang-row${selLang.c===l.c?' sel':''}" onclick="selectLang('${l.f}','${l.n}','${l.c}')">
+      <span class="lang-flag">${l.f}</span>
+      <span class="lang-name">${l.n}</span>
+      <span class="lang-code">${l.c}</span>
+      ${selLang.c===l.c?'<span class="lang-check">✓</span>':''}
+    </div>
+  `).join('');
+}
+
+function filterLangs(){ renderLangs(document.getElementById('lpSearch').value); }
+
+function selectLang(f,n,c){
+  selLang = {f,n,c};
+  closeLangPanel();
+
+  const bar = document.getElementById('aiBar');
+  document.getElementById('aiLangSpan').textContent = c;
+  bar.classList.add('show');
+
+  setTimeout(() => {
+    bar.classList.remove('show');
+    updateXlateBtn();
+    toast(`🌐 Vidéo traduite en ${f} ${n} !`);
+  }, 2000);
+}
+
+/* ──────────────────────────────────────────
+   COMMENTS
+────────────────────────────────────────── */
+function openCmt(i){
+  const v = VIDEOS[i];
+  document.getElementById('cmtTitle').textContent = `${fmt(v.cmts)} commentaires`;
+  document.getElementById('cmtList').innerHTML = v.comments.map(c => `
+    <div class="cmt">
+      <div class="cmt-av">${c.av}</div>
+      <div class="cmt-body">
+        <div class="cmt-user">${c.u}</div>
+        <div class="cmt-text">${c.t}</div>
+        <div class="cmt-actions">
+          <span class="cmt-like" onclick="toast('👍 J\'aime ce commentaire')">👍 J'aime</span>
+          <span class="cmt-like" onclick="toast('💬 Répondre...')">Répondre</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('cmtBg').classList.add('open');
+}
+
+function sendCmt(){
+  const inp = document.getElementById('cmtInput');
+  const txt = inp.value.trim();
+  if(!txt) return;
+  const list = document.getElementById('cmtList');
+  list.insertAdjacentHTML('afterbegin', `
+    <div class="cmt">
+      <div class="cmt-av">😊</div>
+      <div class="cmt-body">
+        <div class="cmt-user">@moi</div>
+        <div class="cmt-text">${txt}</div>
+      </div>
+    </div>
+  `);
+  inp.value = '';
+  toast('💬 Commentaire publié !');
+}
+
+/* ──────────────────────────────────────────
+   SHARE
+────────────────────────────────────────── */
+function openShare(){ document.getElementById('shrBg').classList.add('open'); }
+
+function closeSheet(id){
+  document.getElementById(id === 'cmt' ? 'cmtBg' : 'shrBg').classList.remove('open');
+}
+
+/* ──────────────────────────────────────────
+   TOAST
+────────────────────────────────────────── */
+let toastT;
+function toast(msg){
+  const el = document.getElementById('toastEl');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastT);
+  toastT = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+/* ──────────────────────────────────────────
+   INIT
+────────────────────────────────────────── */
+buildCards();
+</script>
+</body>
+</html>
