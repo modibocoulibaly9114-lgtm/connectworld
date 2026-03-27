@@ -2,8 +2,9 @@ const CACHE = 'connectworld-v2';
 
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(['./', './index.html', './manifest.json']))
-      .catch(() => {})
+    caches.open(CACHE).then(c => 
+      c.addAll(['./', './index.html', './manifest.json'])
+    ).catch(() => {})
   );
   self.skipWaiting();
 });
@@ -41,3 +42,19 @@ self.addEventListener('push', e => {
     })
   );
 });
+```
+
+Ensuite cliquez **"Commit changes"** → **"Commit changes"**.
+
+---
+
+## ✅ Résumé de ce que vous avez fait
+```
+✅ index.html    — l'application complète
+✅ manifest.json — identité de l'app (nom, icône, couleurs)
+✅ sw.js         — mode hors-ligne + notifications push
+```
+
+Attendez **2 minutes** puis retestez sur `pwabuilder.com` avec :
+```
+https://modibocoulibaly9114-lgtm.github.io/connectworld/
